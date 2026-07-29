@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>操稳试验参数记录</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+      --cyan: #06b6d4;
+      --bg: #f0f7ff;
+      --card: #ffffff;
+      --border: #dbeafe;
+      --text: #1e293b;
+      --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 40%, #fdf4ff 100%);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 20px 14px 70px;
+      min-height: 100vh;
+    }
+
+    .container { max-width: 980px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      margin-bottom: 26px;
+      padding: 18px 12px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 16px;
+      color: white;
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    }
+    header h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+    .card.basic::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .card.turn::before { background: linear-gradient(90deg, #10b981, #34d399); }
+    .card.rt::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .card.height::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .card.s350::before { background: linear-gradient(90deg, #ec4899, #f472b6); }
+    .card.tire::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+
+    .card h2 {
+      font-size: 1.08rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card.basic h2 { color: #1d4ed8; }
+    .card.turn h2 { color: #047857; }
+    .card.rt h2 { color: #b45309; }
+    .card.height h2 { color: #6d28d9; }
+    .card.s350 h2 { color: #be185d; }
+    .card.tire h2 { color: #0e7490; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 13px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    label .unit { color: var(--muted); font-weight: 400; font-size: 0.78rem; }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 9px 11px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 0.94rem;
+      transition: all 0.2s;
+      background: #f8fafc;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+    input[type="number"] { -moz-appearance: textfield; }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .photo-area {
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      background: linear-gradient(135deg, #f0f9ff, #fdf4ff);
+      transition: all 0.25s;
+    }
+    .photo-area.dragover {
+      border-color: var(--primary);
+      background: #dbeafe;
+      transform: scale(1.01);
+    }
+    .photo-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+      justify-content: flex-start;
+    }
+    .photo-item {
+      position: relative;
+      width: 105px;
+      height: 105px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-item .remove-btn {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 22px 0 10px;
+      padding: 14px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      border: 1px solid #e0f2fe;
+    }
+    button {
+      padding: 11px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    button:active { transform: translateY(0); }
+
+    .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+    .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+    .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+    .btn-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+    .btn-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+    .btn-secondary { background: #e2e8f0; color: #334155; box-shadow: none; }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    .hint { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+
+    .records-section { margin-top: 32px; }
+    .records-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .records-header h2 {
+      font-size: 1.25rem;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .record-count {
+      font-size: 0.88rem;
+      color: white;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .record-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .record-item {
+      background: white;
+      border: 1.5px solid #e0f2fe;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.22s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .record-item:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
+      transform: translateY(-2px);
+    }
+    .record-item.active {
+      border-color: #8b5cf6;
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .record-info { flex: 1; min-width: 0; }
+    .record-title {
+      font-weight: 650;
+      font-size: 1rem;
+      margin-bottom: 4px;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .record-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .record-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .record-actions button {
+      padding: 6px 11px;
+      font-size: 0.8rem;
+      box-shadow: none;
+    }
+
+    .empty-tip {
+      text-align: center;
+      padding: 42px 20px;
+      color: var(--muted);
+      background: white;
+      border-radius: 14px;
+      border: 2px dashed #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+      button { width: 100%; justify-content: center; }
+      .record-item { flex-direction: column; align-items: flex-start; }
+      .record-actions { width: 100%; justify-content: flex-end; }
+      header h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 只截取这个区域（标题 + 表单内容） -->
+    <div id="screenshotArea">
+      <header>
+        <h1>🚗 操稳试验参数记录</h1>
+      </header>
+
+      <form id="paramForm">
+        <!-- 1. 基本信息 -->
+        <div class="card basic">
+          <h2>🚙 1. 车辆基本信息</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="carName">🏷️ 汽车名称</label>
+              <input type="text" id="carName" />
+            </div>
+            <div class="form-group">
+              <label for="carNumber">🔢 汽车编号</label>
+              <input type="text" id="carNumber" />
+            </div>
+            <div class="form-group">
+              <label for="length">📏 汽车长度 <span class="unit">(mm)</span></label>
+              <input type="number" id="length" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="width">↔️ 汽车宽度 <span class="unit">(mm)</span></label>
+              <input type="number" id="width" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="height">↕️ 汽车高度 <span class="unit">(mm)</span></label>
+              <input type="number" id="height" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="wheelbase">🛞 轴距 <span class="unit">(mm)</span></label>
+              <input type="number" id="wheelbase" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 转弯直径 -->
+        <div class="card turn">
+          <h2>🔄 2. 转弯直径</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="leftTurnDia">↩️ 左转转弯直径 <span class="unit">(m)</span></label>
+              <input type="number" id="leftTurnDia" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label for="rightTurnDia">↪️ 右转转弯直径 <span class="unit">(m)</span></label>
+              <input type="number" id="rightTurnDia" step="0.01" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. RT 距离 -->
+        <div class="card rt">
+          <h2>📡 3. RT 距离参数</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="rtToFrontAxle">➡️ RT 到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="rtToFrontAxle" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="rtToRearAxle">⬅️ RT 到后轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="rtToRearAxle" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="rtToRoof">⬆️ RT 到车顶距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="rtToRoof" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="rtToGround">⬇️ RT 到地面距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="rtToGround" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 高度计 -->
+        <div class="card height">
+          <h2>📐 4. 高度计相关参数</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="leftHeightToFront">◀️ 左高度计到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="leftHeightToFront" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="rightHeightToFront">▶️ 右高度计到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="rightHeightToFront" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="lrHeightSpotDist">↔️ 左右高度计光点距 <span class="unit">(mm)</span></label>
+              <input type="number" id="lrHeightSpotDist" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="frontHeightToFront">🔼 前高度计到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="frontHeightToFront" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="frHeightSpotDist">↕️ 前后高度计光点距 <span class="unit">(mm)</span></label>
+              <input type="number" id="frHeightSpotDist" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. S350 & H点 -->
+        <div class="card s350">
+          <h2>📍 5. S350 与 H 点参数</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="s350ToFront">➡️ S350 到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="s350ToFront" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="s350Lateral">↔️ S350 横向距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="s350Lateral" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label for="s350Ref">📌 S350 横向参照物</label>
+              <input type="text" id="s350Ref" />
+            </div>
+            <div class="form-group">
+              <label for="hPointToFront">👤 H 点到前轴距离 <span class="unit">(mm)</span></label>
+              <input type="number" id="hPointToFront" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. 轮胎 -->
+        <div class="card tire">
+          <h2>🛞 6. 轮胎信息</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="tireSpec">📋 轮胎规格型号</label>
+              <input type="text" id="tireSpec" />
+            </div>
+            <div class="form-group">
+              <label for="tireDate">📅 轮胎生产日期</label>
+              <input type="text" id="tireDate" />
+            </div>
+            <div class="form-group full">
+              <label>📷 轮胎照片</label>
+              <div class="photo-area" id="photoArea">
+                <p style="margin-bottom: 10px; color: #64748b; font-size: 0.9rem;">点击或拖拽上传轮胎照片（支持多张）</p>
+                <input type="file" id="tirePhotos" accept="image/*" multiple style="display:none;" />
+                <button type="button" class="btn-secondary" onclick="document.getElementById('tirePhotos').click()">📁 选择图片</button>
+                <div class="photo-preview" id="photoPreview"></div>
+              </div>
+              <p class="hint">支持 JPG / PNG / WEBP，建议单张不超过 5MB</p>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="btn-row">
+      <button type="button" class="btn-primary" id="btnSaveNew" onclick="saveAsNew()">💾 保存为新记录</button>
+      <button type="button" class="btn-warning" id="btnUpdate" onclick="updateCurrent()" style="display:none;">🔄 更新此记录</button>
+      <button type="button" class="btn-cyan" onclick="captureLongScreenshot()">📸 长截图保存</button>
+      <button type="button" class="btn-success" onclick="exportExcel(false)">📊 导出当前Excel</button>
+      <button type="button" class="btn-purple" onclick="exportExcel(true)">📑 导出全部Excel</button>
+      <button type="button" class="btn-danger" onclick="clearForm()">🗑️ 清空表单</button>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="records-section">
+      <div class="records-header">
+        <h2>📚 历史记录</h2>
+        <span class="record-count" id="recordCount">共 0 条</span>
+      </div>
+      <div class="record-list" id="recordList"></div>
+      <div class="empty-tip" id="emptyTip">
+        ✨ 暂无记录，请填写上方参数后点击「保存为新记录」
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let records = [];
+    let photoList = [];
+    let currentViewId = null;
+    const STORAGE_KEY = 'vehicleTestRecords_v3';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadRecords();
+      renderRecordList();
+      setupPhotoUpload();
+    });
+
+    function loadRecords() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        records = raw ? JSON.parse(raw) : [];
+        records.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+      } catch (e) {
+        records = [];
+      }
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function collectFormData() {
+      const ids = [
+        'carName','carNumber','length','width','height','wheelbase',
+        'leftTurnDia','rightTurnDia',
+        'rtToFrontAxle','rtToRearAxle','rtToRoof','rtToGround',
+        'leftHeightToFront','rightHeightToFront','lrHeightSpotDist',
+        'frontHeightToFront','frHeightSpotDist',
+        's350ToFront','s350Lateral','s350Ref','hPointToFront',
+        'tireSpec','tireDate'
+      ];
+      const data = {};
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        data[id] = el ? el.value.trim() : '';
+      });
+      data.photos = [...photoList];
+      return data;
+    }
+
+    function fillForm(data) {
+      Object.keys(data).forEach(id => {
+        if (id === 'photos' || id === 'id' || id === 'savedAt') return;
+        const el = document.getElementById(id);
+        if (el) el.value = data[id] || '';
+      });
+      photoList = data.photos ? [...data.photos] : [];
+      renderPhotos();
+    }
+
+    function saveAsNew() {
+      const data = collectFormData();
+      if (!data.carName && !data.carNumber) {
+        alert('请至少填写「汽车名称」或「汽车编号」后再保存');
+        return;
+      }
+      const record = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        ...data,
+        savedAt: new Date().toISOString()
+      };
+      records.unshift(record);
+      persist();
+      renderRecordList();
+      clearForm(false);
+      exitViewMode();
+      alert('✅ 已保存为新记录！');
+    }
+
+    function updateCurrent() {
+      if (!currentViewId) return;
+      const idx = records.findIndex(r => r.id === currentViewId);
+      if (idx === -1) {
+        alert('记录不存在');
+        exitViewMode();
+        return;
+      }
+      const data = collectFormData();
+      records[idx] = { ...records[idx], ...data, savedAt: new Date().toISOString() };
+      records.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+      persist();
+      renderRecordList();
+      alert('✅ 记录已更新！');
+    }
+
+    function viewRecord(id) {
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+      currentViewId = id;
+      fillForm(record);
+      document.querySelectorAll('.record-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+      });
+      document.getElementById('btnUpdate').style.display = 'inline-flex';
+      document.getElementById('btnSaveNew').textContent = '💾 另存为新记录';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function exitViewMode() {
+      currentViewId = null;
+      document.getElementById('btnUpdate').style.display = 'none';
+      document.getElementById('btnSaveNew').textContent = '💾 保存为新记录';
+      document.querySelectorAll('.record-item').forEach(el => el.classList.remove('active'));
+    }
+
+    function deleteRecord(id, event) {
+      event.stopPropagation();
+      if (!confirm('确定删除这条记录吗？')) return;
+      records = records.filter(r => r.id !== id);
+      persist();
+      renderRecordList();
+      if (currentViewId === id) {
+        exitViewMode();
+        clearForm(false);
+      }
+    }
+
+    function renderRecordList() {
+      const listEl = document.getElementById('recordList');
+      const emptyTip = document.getElementById('emptyTip');
+      const countEl = document.getElementById('recordCount');
+      countEl.textContent = `共 ${records.length} 条`;
+
+      if (records.length === 0) {
+        listEl.innerHTML = '';
+        emptyTip.style.display = 'block';
+        return;
+      }
+      emptyTip.style.display = 'none';
+      listEl.innerHTML = records.map(r => {
+        const name = r.carName || '未命名车辆';
+        const number = r.carNumber ? `🔢 ${r.carNumber}` : '';
+        const time = new Date(r.savedAt).toLocaleString('zh-CN');
+        const tire = r.tireSpec ? `🛞 ${r.tireSpec}` : '';
+        return `
+          <div class="record-item ${currentViewId === r.id ? 'active' : ''}" 
+               data-id="${r.id}" onclick="viewRecord('${r.id}')">
+            <div class="record-info">
+              <div class="record-title">🚗 ${escapeHtml(name)}</div>
+              <div class="record-meta">
+                ${number ? `<span>${escapeHtml(number)}</span>` : ''}
+                ${tire ? `<span>${escapeHtml(tire)}</span>` : ''}
+                <span>🕒 ${time}</span>
+              </div>
+            </div>
+            <div class="record-actions">
+              <button type="button" class="btn-secondary" onclick="viewRecord('${r.id}')">👁️ 查看</button>
+              <button type="button" class="btn-danger" onclick="deleteRecord('${r.id}', event)">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function clearForm(needConfirm = true) {
+      if (needConfirm && !confirm('确定清空当前表单吗？')) return;
+      document.getElementById('paramForm').reset();
+      photoList = [];
+      renderPhotos();
+      exitViewMode();
+    }
+
+    // ========== 长截图：只截取到轮胎信息 ==========
+    async function captureLongScreenshot() {
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ 正在生成长图...';
+      btn.disabled = true;
+
+      try {
+        await new Promise(r => setTimeout(r, 100));
+        const element = document.getElementById('screenshotArea');
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#f0f7ff',
+          logging: false,
+          windowWidth: element.scrollWidth,
+          windowHeight: element.scrollHeight
+        });
+
+        const dataUrl = canvas.toDataURL('image/png');
+        const newWin = window.open();
+        if (newWin) {
+          newWin.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>操稳试验参数长图</title>
+              <style>
+                body { margin: 0; background: #f0f7ff; text-align: center; }
+                img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+                .tip {
+                  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+                  background: rgba(0,0,0,0.75); color: white; padding: 8px 16px;
+                  border-radius: 8px; font-size: 14px; z-index: 10;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="tip">右键图片 →「图片另存为…」即可保存</div>
+              <img src="${dataUrl}" alt="操稳试验参数长图" />
+            </body>
+            </html>
+          `);
+          newWin.document.close();
+        } else {
+          alert('浏览器拦截了新窗口，请允许弹窗后重试。');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('截图失败，请稍后重试');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    // ========== Excel 导出（参数作为第1列） ==========
+    function exportExcel(all = false) {
+      let dataToExport = [];
+      let fileName = '';
+
+      if (all) {
+        if (records.length === 0) {
+          alert('暂无历史记录可导出');
+          return;
+        }
+        dataToExport = records;
+        fileName = `操稳试验参数_全部记录_${new Date().toISOString().slice(0,10)}.xlsx`;
+      } else {
+        const current = collectFormData();
+        if (!current.carName && !current.carNumber) {
+          alert('当前表单为空，请先填写或选择一条记录');
+          return;
+        }
+        dataToExport = [{ ...current, savedAt: new Date().toISOString() }];
+        const name = current.carName || current.carNumber || '当前记录';
+        fileName = `操稳参数_${name}_${new Date().toISOString().slice(0,10)}.xlsx`;
+      }
+
+      const paramList = [
+        { key: 'carName',           label: '汽车名称' },
+        { key: 'carNumber',         label: '汽车编号' },
+        { key: 'length',            label: '汽车长度(mm)' },
+        { key: 'width',             label: '汽车宽度(mm)' },
+        { key: 'height',            label: '汽车高度(mm)' },
+        { key: 'wheelbase',         label: '轴距(mm)' },
+        { key: 'leftTurnDia',       label: '左转转弯直径(m)' },
+        { key: 'rightTurnDia',      label: '右转转弯直径(m)' },
+        { key: 'rtToFrontAxle',     label: 'RT到前轴距离(mm)' },
+        { key: 'rtToRearAxle',      label: 'RT到后轴距离(mm)' },
+        { key: 'rtToRoof',          label: 'RT到车顶距离(mm)' },
+        { key: 'rtToGround',        label: 'RT到地面距离(mm)' },
+        { key: 'leftHeightToFront', label: '左高度计到前轴距离(mm)' },
+        { key: 'rightHeightToFront',label: '右高度计到前轴距离(mm)' },
+        { key: 'lrHeightSpotDist',  label: '左右高度计光点距(mm)' },
+        { key: 'frontHeightToFront',label: '前高度计到前轴距离(mm)' },
+        { key: 'frHeightSpotDist',  label: '前后高度计光点距(mm)' },
+        { key: 's350ToFront',       label: 'S350到前轴距离(mm)' },
+        { key: 's350Lateral',       label: 'S350横向距离(mm)' },
+        { key: 's350Ref',           label: 'S350横向参照物' },
+        { key: 'hPointToFront',     label: 'H点到前轴距离(mm)' },
+        { key: 'tireSpec',          label: '轮胎规格型号' },
+        { key: 'tireDate',          label: '轮胎生产日期' },
+        { key: 'savedAt',           label: '保存时间' }
+      ];
+
+      const aoa = [];
+      const headerRow = ['参数'];
+      dataToExport.forEach((r, i) => {
+        const title = r.carName || r.carNumber || `记录${i + 1}`;
+        headerRow.push(title);
+      });
+      aoa.push(headerRow);
+
+      paramList.forEach(p => {
+        const row = [p.label];
+        dataToExport.forEach(r => {
+          let val = r[p.key] || '';
+          if (p.key === 'savedAt' && val) {
+            val = new Date(val).toLocaleString('zh-CN');
+          }
+          row.push(val);
+        });
+        aoa.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{ wch: 22 }];
+      dataToExport.forEach(() => ws['!cols'].push({ wch: 16 }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '操稳参数');
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function setupPhotoUpload() {
+      const photoInput = document.getElementById('tirePhotos');
+      const photoArea = document.getElementById('photoArea');
+
+      photoInput.addEventListener('change', handleFiles);
+      photoArea.addEventListener('dragover', e => {
+        e.preventDefault();
+        photoArea.classList.add('dragover');
+      });
+      photoArea.addEventListener('dragleave', () => photoArea.classList.remove('dragover'));
+      photoArea.addEventListener('drop', e => {
+        e.preventDefault();
+        photoArea.classList.remove('dragover');
+        handleFiles({ target: { files: e.dataTransfer.files } });
+      });
+    }
+
+    function handleFiles(e) {
+      const files = Array.from(e.target.files || []);
+      files.forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`图片 ${file.name} 超过 5MB，已跳过`);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = ev => {
+          photoList.push({ name: file.name, data: ev.target.result });
+          renderPhotos();
+        };
+        reader.readAsDataURL(file);
+      });
+      document.getElementById('tirePhotos').value = '';
+    }
+
+    function renderPhotos() {
+      const preview = document.getElementById('photoPreview');
+      preview.innerHTML = '';
+      photoList.forEach((p, idx) => {
+        const div = document.createElement('div');
+        div.className = 'photo-item';
+        div.innerHTML = `
+          <img src="${p.data}" alt="${p.name}" />
+          <button type="button" class="remove-btn" onclick="removePhoto(${idx})">×</button>
+        `;
+        preview.appendChild(div);
+      });
+    }
+
+    function removePhoto(idx) {
+      photoList.splice(idx, 1);
+      renderPhotos();
+    }
+  </script>
+</body>
+</html>
