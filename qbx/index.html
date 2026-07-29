@@ -1,1 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>双纽线坐标计算器 · 最小转弯直径</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2::before {
+      content: "";
+      width: 4px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .input-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .field {
+      flex: 1;
+      min-width: 180px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1.05rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+    button {
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:active { transform: scale(0.98); }
+    .params {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .param {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .param .label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .param .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--success);
+    }
+    .param .unit {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+    .plot-wrap {
+      position: relative;
+      background: #0a0e14;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 480px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      padding: 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--bg);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+      position: sticky;
+      top: 0;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.08); }
+    .point-label {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+    .formula {
+      font-size: 0.88rem;
+      color: var(--muted);
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+      line-height: 1.7;
+    }
+    .formula code {
+      color: var(--warning);
+      font-family: "SF Mono", "Fira Code", Consolas, monospace;
+      font-size: 0.92em;
+    }
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.4rem; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>双纽线坐标计算器</h1>
+    </header>
 
+    <div class="card">
+      <h2>输入参数</h2>
+      <div class="input-row">
+        <div class="field">
+          <label for="diameter">最小转弯直径 D（m）</label>
+          <input type="number" id="diameter" value="11.00" min="0.1" step="0.01" />
+        </div>
+        <div class="field">
+          <label for="step">角度步长（°）</label>
+          <input type="number" id="step" value="10" min="1" max="15" step="1" />
+        </div>
+        <button id="calcBtn">计算坐标</button>
+      </div>
+    </div>
+
+    <div class="card" id="tableCard" style="display:none;">
+      <h2>离散点坐标表（右侧环）</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>点</th>
+              <th>转角 φ (°)</th>
+              <th>l (m)</th>
+              <th>X (m)</th>
+              <th>Y (m)</th>
+              <th>2Y (m)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" id="copyBtn">复制坐标到剪贴板</button>
+        <button class="btn-secondary" id="csvBtn">下载 CSV</button>
+      </div>
+    </div>
+
+    <div class="card" id="plotCard" style="display:none;">
+      <h2>双纽线可视化（完整8字）</h2>
+      <div class="plot-wrap">
+        <canvas id="canvas" width="900" height="480"></canvas>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:#3b82f6"></i> 右环 上半弧</span>
+        <span><i class="dot" style="background:#10b981"></i> 右环 下半弧</span>
+        <span><i class="dot" style="background:#a78bfa"></i> 左环 上半弧</span>
+        <span><i class="dot" style="background:#f472b6"></i> 左环 下半弧</span>
+        <span><i class="dot" style="background:#f59e0b"></i> 离散计算点</span>
+        <span><i class="dot" style="background:#ef4444"></i> 原点 O / 最远点 b</span>
+      </div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h2>计算结果</h2>
+      <div class="params" id="params"></div>
+    </div>
+
+    <div class="card">
+      <h2>计算公式说明</h2>
+      <div class="formula">
+        最小转弯半径 <code>R = D / 2</code><br>
+        双纽线最小曲率半径 <code>R<sub>min</sub> = R × 1.1</code><br>
+        参数 <code>d = 3 × R<sub>min</sub></code>（极径最大值，对应最远点 b）<br>
+        极坐标参数方程（φ ∈ [0°, 45°]）：<br>
+        <code>l = d × √(cos 2φ)</code><br>
+        <code>X = l × cos φ</code> &nbsp;&nbsp; <code>Y = l × sin φ</code><br>
+        原点 O 对应 φ = 45°，最远点 b 对应 φ = 0°。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let lastPoints = [];
+
+    function calc() {
+      const D = parseFloat($('diameter').value);
+      const step = parseFloat($('step').value) || 10;
+      if (!(D > 0)) {
+        alert('请输入有效的最小转弯直径');
+        return;
+      }
+
+      const R = D / 2;
+      const Rmin = R * 1.1;
+      const d = 3 * Rmin;
+
+      // 显示参数（全部保留2位小数）
+      $('params').innerHTML = `
+        <div class="param"><div class="label">最小转弯半径 R</div><div class="value">${R.toFixed(2)}<span class="unit">m</span></div></div>
+        <div class="param"><div class="label">双纽线 R<sub>min</sub> (=R×1.1)</div><div class="value">${Rmin.toFixed(2)}<span class="unit">m</span></div></div>
+        <div class="param"><div class="label">d = 3×R<sub>min</sub></div><div class="value">${d.toFixed(2)}<span class="unit">m</span></div></div>
+        <div class="param"><div class="label">最远点 X (点 b)</div><div class="value">${d.toFixed(2)}<span class="unit">m</span></div></div>
+      `;
+      $('resultCard').style.display = 'block';
+      $('plotCard').style.display = 'block';
+      $('tableCard').style.display = 'block';
+
+      // 生成离散点（从 b 到 O：φ 从 0° 到 45°）
+      const angles = [];
+      for (let a = 0; a <= 45 + 1e-9; a += step) angles.push(Math.min(a, 45));
+      if (angles[angles.length - 1] < 45 - 1e-6) angles.push(45);
+
+      const points = angles.map((deg, idx) => {
+        const phi = deg * Math.PI / 180;
+        const cos2 = Math.cos(2 * phi);
+        const sqrtCos = Math.sqrt(Math.max(0, cos2));
+        const l = d * sqrtCos;
+        const X = l * Math.cos(phi);
+        const Y = l * Math.sin(phi);
+        let label = '';
+        if (deg === 0) label = 'b';
+        else if (Math.abs(deg - 45) < 1e-6) label = 'O';
+        else label = String(angles.length - 1 - idx);
+        return { deg, phi, l, X, Y, label };
+      });
+
+      lastPoints = points;
+
+      // 表格（2位小数，2Y = Y*2）
+      const tbody = $('tbody');
+      tbody.innerHTML = points.map(p => `
+        <tr>
+          <td class="point-label">${p.label}</td>
+          <td>${p.deg.toFixed(0)}</td>
+          <td>${p.l.toFixed(2)}</td>
+          <td>${p.X.toFixed(2)}</td>
+          <td>${p.Y.toFixed(2)}</td>
+          <td>${(p.Y * 2).toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      // 绘图（完整左右环）
+      draw(points, d);
+    }
+
+    function draw(points, d) {
+      const canvas = $('canvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // 边距与缩放（左右都显示，以 2d 为基准）
+      const margin = 50;
+      const scale = Math.min((W - 2 * margin) / (2.2 * d), (H - 2 * margin) / (1.5 * d));
+      const cx = W / 2;
+      const cy = H / 2;
+
+      function toScreen(x, y) {
+        return [cx + x * scale, cy - y * scale];
+      }
+
+      // 网格
+      ctx.strokeStyle = '#1e2a3a';
+      ctx.lineWidth = 1;
+      const gridStep = Math.pow(10, Math.floor(Math.log10(d / 2)));
+      for (let g = -Math.ceil(d * 1.15 / gridStep) * gridStep; g <= d * 1.15; g += gridStep) {
+        const [sx] = toScreen(g, 0);
+        const [_, sy] = toScreen(0, g);
+        ctx.beginPath(); ctx.moveTo(sx, margin); ctx.lineTo(sx, H - margin); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(margin, sy); ctx.lineTo(W - margin, sy); ctx.stroke();
+      }
+
+      // 坐标轴
+      ctx.strokeStyle = '#4a5a70';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(margin, cy); ctx.lineTo(W - margin, cy);
+      ctx.moveTo(cx, margin); ctx.lineTo(cx, H - margin);
+      ctx.stroke();
+
+      // 绘制一条弧：signX = ±1（左右环），signY = ±1（上下）
+      function drawArc(signX, signY, color) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        let first = true;
+        for (let deg = 0; deg <= 45; deg += 0.25) {
+          const phi = deg * Math.PI / 180;
+          const cos2 = Math.cos(2 * phi);
+          if (cos2 < 0) continue;
+          const l = d * Math.sqrt(cos2);
+          const x = signX * l * Math.cos(phi);
+          const y = signY * l * Math.sin(phi);
+          const [sx, sy] = toScreen(x, y);
+          if (first) { ctx.moveTo(sx, sy); first = false; }
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+      }
+
+      // 右环
+      drawArc( 1,  1, '#3b82f6'); // 右上
+      drawArc( 1, -1, '#10b981'); // 右下
+      // 左环
+      drawArc(-1,  1, '#a78bfa'); // 左上
+      drawArc(-1, -1, '#f472b6'); // 左下
+
+      // 离散点（右侧）+ 对称到左侧
+      points.forEach(p => {
+        const isKey = p.label === 'O' || p.label === 'b';
+
+        // 右侧上
+        let [sx, sy] = toScreen(p.X, p.Y);
+        ctx.beginPath();
+        ctx.arc(sx, sy, isKey ? 6 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = isKey ? '#ef4444' : '#f59e0b';
+        ctx.fill();
+
+        // 右侧下
+        if (Math.abs(p.Y) > 1e-6) {
+          [sx, sy] = toScreen(p.X, -p.Y);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#f59e0b';
+          ctx.fill();
+        }
+
+        // 左侧上（镜像）
+        [sx, sy] = toScreen(-p.X, p.Y);
+        ctx.beginPath();
+        ctx.arc(sx, sy, isKey ? 6 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isKey ? '#ef4444' : '#f59e0b';
+        ctx.fill();
+
+        // 左侧下
+        if (Math.abs(p.Y) > 1e-6) {
+          [sx, sy] = toScreen(-p.X, -p.Y);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#f59e0b';
+          ctx.fill();
+        }
+
+        // 右环上半弧所有离散点显示名称
+        ctx.fillStyle = '#e7ecf3';
+        ctx.font = '12px sans-serif';
+        const [tx, ty] = toScreen(p.X, p.Y);
+        ctx.fillText(p.label, tx + 8, ty - 8);
+      });
+
+      // 标注
+      ctx.fillStyle = '#8b9bb4';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(`d = ${d.toFixed(2)} m`, cx + d * scale * 0.45, cy + 22);
+      ctx.fillText(`-d`, cx - d * scale * 0.55, cy + 22);
+    }
+
+    // 复制 / 下载
+    $('copyBtn').addEventListener('click', () => {
+      if (!lastPoints.length) return;
+      const text = '点\tφ(°)\tl(m)\tX(m)\tY(m)\t2Y(m)\n' +
+        lastPoints.map(p =>
+          `${p.label}\t${p.deg}\t${p.l.toFixed(2)}\t${p.X.toFixed(2)}\t${p.Y.toFixed(2)}\t${(p.Y * 2).toFixed(2)}`
+        ).join('\n');
+      navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
+    });
+
+    $('csvBtn').addEventListener('click', () => {
+      if (!lastPoints.length) return;
+      const csv = '点,转角φ(°),l(m),X(m),Y(m),2Y(m)\n' +
+        lastPoints.map(p =>
+          `${p.label},${p.deg},${p.l.toFixed(2)},${p.X.toFixed(2)},${p.Y.toFixed(2)},${(p.Y * 2).toFixed(2)}`
+        ).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `双纽线坐标_D${$('diameter').value}.csv`;
+      a.click();
+    });
+
+    $('calcBtn').addEventListener('click', calc);
+    $('diameter').addEventListener('keydown', e => { if (e.key === 'Enter') calc(); });
+    $('step').addEventListener('keydown', e => { if (e.key === 'Enter') calc(); });
+
+    // 初始计算
+    calc();
+  </script>
+</body>
+</html>
