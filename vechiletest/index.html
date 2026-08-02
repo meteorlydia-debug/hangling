@@ -2,24 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#3b82f6" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="操稳参数" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="description" content="汽车操稳试验参数记录工具" />
-  
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>操稳试验参数记录</title>
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  
   <style>
     :root {
       --primary: #3b82f6;
@@ -35,8 +21,6 @@
       --border: #dbeafe;
       --text: #1e293b;
       --muted: #64748b;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,10 +30,8 @@
       background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 40%, #fdf4ff 100%);
       color: var(--text);
       line-height: 1.5;
-      padding: calc(20px + var(--safe-top)) 14px calc(70px + var(--safe-bottom));
+      padding: 20px 14px 70px;
       min-height: 100vh;
-      min-height: 100dvh;
-      -webkit-tap-highlight-color: transparent;
     }
 
     .container { max-width: 980px; margin: 0 auto; }
@@ -140,7 +122,6 @@
       font-size: 0.94rem;
       transition: all 0.2s;
       background: #f8fafc;
-      -webkit-appearance: none;
     }
     input:focus {
       outline: none;
@@ -322,27 +303,6 @@
       font-size: 0.95rem;
     }
 
-    /* 安装提示条 */
-    .install-tip {
-      display: none;
-      background: linear-gradient(90deg, #dbeafe, #e0e7ff);
-      border: 1px solid #93c5fd;
-      color: #1e40af;
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      font-size: 0.9rem;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .install-tip.show { display: flex; }
-    .install-tip button {
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
     @media (max-width: 640px) {
       .form-grid { grid-template-columns: 1fr; }
       .btn-row { flex-direction: column; }
@@ -351,17 +311,108 @@
       .record-actions { width: 100%; justify-content: flex-end; }
       header h1 { font-size: 1.4rem; }
     }
+
+    /* 长截图悬浮预览 */
+    .screenshot-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: auto;
+    }
+    .screenshot-modal.show {
+      display: flex;
+    }
+    .screenshot-modal-inner {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      max-width: 920px;
+      width: 100%;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalIn 0.22s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .screenshot-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      flex-shrink: 0;
+    }
+    .screenshot-modal-header h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .screenshot-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px;
+      background: #f0f7ff;
+      text-align: center;
+    }
+    .screenshot-modal-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: block;
+      margin: 0 auto;
+    }
+    .screenshot-modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 14px 18px;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .screenshot-modal-footer button {
+      min-width: 110px;
+    }
+    .btn-close-modal {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #475569;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none;
+      padding: 0;
+    }
+    .btn-close-modal:hover {
+      background: #cbd5e1;
+      transform: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- 安装提示（仅在可安装时显示） -->
-    <div class="install-tip" id="installTip">
-      <span>📱 可将本应用添加到主屏幕，像原生 App 一样使用</span>
-      <button type="button" class="btn-primary" id="installBtn" style="display:none;">立即安装</button>
-      <button type="button" class="btn-secondary" onclick="document.getElementById('installTip').classList.remove('show')">关闭</button>
-    </div>
-
+    <!-- 只截取这个区域（标题 + 表单内容） -->
     <div id="screenshotArea">
       <header>
         <h1>🚗 操稳试验参数记录</h1>
@@ -537,52 +588,39 @@
     </div>
   </div>
 
+  <!-- 长截图悬浮预览 -->
+  <div class="screenshot-modal" id="screenshotModal" onclick="if(event.target===this) closeScreenshotModal()">
+    <div class="screenshot-modal-inner">
+      <div class="screenshot-modal-header">
+        <h3>📸 长截图预览</h3>
+        <button type="button" class="btn-close-modal" onclick="closeScreenshotModal()" title="关闭">×</button>
+      </div>
+      <div class="screenshot-modal-body">
+        <img id="screenshotPreviewImg" src="" alt="操稳试验参数长图" />
+      </div>
+      <div class="screenshot-modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeScreenshotModal()">关闭</button>
+        <button type="button" class="btn-primary" id="btnDownloadScreenshot" onclick="downloadScreenshot()">⬇️ 下载图片</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // ========== PWA 注册 ==========
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service Worker 注册成功', reg.scope))
-          .catch(err => console.warn('Service Worker 注册失败', err));
-      });
-    }
-
-    // 安装提示（Chrome / Edge 等支持 beforeinstallprompt）
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const tip = document.getElementById('installTip');
-      const btn = document.getElementById('installBtn');
-      tip.classList.add('show');
-      btn.style.display = 'inline-flex';
-      btn.onclick = async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        tip.classList.remove('show');
-      };
-    });
-
-    // iOS Safari 提示
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    if (isIOS && !isStandalone) {
-      document.getElementById('installTip').classList.add('show');
-      document.getElementById('installTip').querySelector('span').textContent = '📱 iPhone：点击底部分享按钮 →「添加到主屏幕」即可安装';
-    }
-
-    // ========== 数据 ==========
     let records = [];
     let photoList = [];
     let currentViewId = null;
+    let lastScreenshotDataUrl = null;
     const STORAGE_KEY = 'vehicleTestRecords_v3';
 
     window.addEventListener('DOMContentLoaded', () => {
       loadRecords();
       renderRecordList();
       setupPhotoUpload();
+    });
+
+    // ESC 关闭长截图预览
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeScreenshotModal();
     });
 
     function loadRecords() {
@@ -745,7 +783,7 @@
       exitViewMode();
     }
 
-    // 长截图（只截取到轮胎信息）
+    // ========== 长截图：悬浮预览（不再弹新窗口） ==========
     async function captureLongScreenshot() {
       const btn = event.currentTarget;
       const originalText = btn.innerHTML;
@@ -766,41 +804,10 @@
         });
 
         const dataUrl = canvas.toDataURL('image/png');
-        const newWin = window.open();
-        if (newWin) {
-          newWin.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>操稳试验参数长图</title>
-              <style>
-                body { margin: 0; background: #f0f7ff; text-align: center; }
-                img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-                .tip {
-                  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-                  background: rgba(0,0,0,0.75); color: white; padding: 8px 16px;
-                  border-radius: 8px; font-size: 14px; z-index: 10;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="tip">长按图片 →「存储图像」即可保存到相册</div>
-              <img src="${dataUrl}" alt="操稳试验参数长图" />
-            </body>
-            </html>
-          `);
-          newWin.document.close();
-        } else {
-          // 备用：在当前页创建一个可长按保存的预览
-          const preview = document.createElement('div');
-          preview.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-          preview.innerHTML = `
-            <p style="color:white;margin-bottom:12px;">长按下方图片 → 存储图像</p>
-            <img src="${dataUrl}" style="max-width:100%;max-height:70vh;border-radius:8px;" />
-            <button style="margin-top:16px;padding:10px 24px;border:none;border-radius:8px;background:#3b82f6;color:white;font-size:16px;" onclick="this.parentElement.remove()">关闭</button>
-          `;
-          document.body.appendChild(preview);
-        }
+        lastScreenshotDataUrl = dataUrl;
+        document.getElementById('screenshotPreviewImg').src = dataUrl;
+        document.getElementById('screenshotModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
       } catch (err) {
         console.error(err);
         alert('截图失败，请稍后重试');
@@ -810,7 +817,23 @@
       }
     }
 
-    // Excel 导出（参数为第1列）
+    function closeScreenshotModal() {
+      document.getElementById('screenshotModal').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    function downloadScreenshot() {
+      if (!lastScreenshotDataUrl) return;
+      const a = document.createElement('a');
+      a.href = lastScreenshotDataUrl;
+      const name = (document.getElementById('carName').value || document.getElementById('carNumber').value || '操稳参数').trim();
+      a.download = `操稳试验参数_${name}_${new Date().toISOString().slice(0,10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // ========== Excel 导出（参数作为第1列） ==========
     function exportExcel(all = false) {
       let dataToExport = [];
       let fileName = '';
@@ -889,7 +912,6 @@
       XLSX.writeFile(wb, fileName);
     }
 
-    // 照片上传
     function setupPhotoUpload() {
       const photoInput = document.getElementById('tirePhotos');
       const photoArea = document.getElementById('photoArea');
