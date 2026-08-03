@@ -415,7 +415,7 @@
     <!-- 只截取这个区域（标题 + 表单内容） -->
     <div id="screenshotArea">
       <header>
-        <h1>🚗 操稳试验参数记录</h1>
+        <h1>试验参数记录表</h1>
       </header>
 
       <form id="paramForm">
@@ -596,7 +596,7 @@
         <button type="button" class="btn-close-modal" onclick="closeScreenshotModal()" title="关闭">×</button>
       </div>
       <div class="screenshot-modal-body">
-        <img id="screenshotPreviewImg" src="" alt="操稳试验参数长图" />
+        <img id="screenshotPreviewImg" src="" alt="试验参数记录长图" />
       </div>
       <div class="screenshot-modal-footer">
         <button type="button" class="btn-secondary" onclick="closeScreenshotModal()">关闭</button>
@@ -826,8 +826,8 @@
       if (!lastScreenshotDataUrl) return;
       const a = document.createElement('a');
       a.href = lastScreenshotDataUrl;
-      const name = (document.getElementById('carName').value || document.getElementById('carNumber').value || '操稳参数').trim();
-      a.download = `操稳试验参数_${name}_${new Date().toISOString().slice(0,10)}.png`;
+      const name = (document.getElementById('carName').value || document.getElementById('carNumber').value || '试验参数').trim();
+      a.download = `试验参数记录_${name}_${new Date().toISOString().slice(0,10)}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -844,7 +844,7 @@
           return;
         }
         dataToExport = records;
-        fileName = `操稳试验参数_全部记录_${new Date().toISOString().slice(0,10)}.xlsx`;
+        fileName = `试验参数记录_全部记录_${new Date().toISOString().slice(0,10)}.xlsx`;
       } else {
         const current = collectFormData();
         if (!current.carName && !current.carNumber) {
@@ -853,7 +853,7 @@
         }
         dataToExport = [{ ...current, savedAt: new Date().toISOString() }];
         const name = current.carName || current.carNumber || '当前记录';
-        fileName = `操稳参数_${name}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        fileName = `试验参数记录_${name}_${new Date().toISOString().slice(0,10)}.xlsx`;
       }
 
       const paramList = [
@@ -908,7 +908,7 @@
       dataToExport.forEach(() => ws['!cols'].push({ wch: 16 }));
 
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '操稳参数');
+      XLSX.utils.book_append_sheet(wb, ws, '试验参数记录');
       XLSX.writeFile(wb, fileName);
     }
 
